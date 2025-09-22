@@ -34,12 +34,11 @@
   .divider{border:0;border-top:1px solid #e3e6eb;margin:16px 0}
   .powered-by{display:block;width:100%;text-align:center;margin:16px 0 0;color:#555;font-size:14px}
 
-  /* Mobile card table */
+  /* Mobile: turn rows into cards */
   @media (max-width:640px){
     main{padding:0 12px}
     h1{font-size:clamp(20px,5.5vw,26px)}
     th,td{padding:8px 6px;font-size:13px}
-
     #quoteTable{min-width:0;border-collapse:separate;border-spacing:0 12px}
     #quoteTable thead{display:none}
     #quoteTable tbody tr{
@@ -99,11 +98,11 @@
         <input type="number" id="discount" value="48" readonly/>
       </div>
       <div style="align-self:end">
-        <button class="btn" onclick="addItem()">Add to Quotation</button>
+        <button class="btn" id="addBtn">Add to Quotation</button>
       </div>
     </div>
     <p class="muted" style="margin:8px 0 0;color:#666;font-size:12px;">
-      Prices are per piece before discount. Source: VS Forged Fittings price list (w.e.f. 01/05/2025).
+      Prices are per piece before discount. Source: VS Forged Pipe Fittings (w.e.f. 01/05/2025).
     </p>
   </div>
 
@@ -123,18 +122,9 @@
         </thead>
         <tbody></tbody>
         <tfoot>
-          <tr>
-            <td colspan="4" style="text-align:right">Sub-Total</td>
-            <td id="subTotal">INR 0</td><td></td>
-          </tr>
-          <tr>
-            <td colspan="4" style="text-align:right">GST (18%)</td>
-            <td id="gstAmt">INR 0</td><td></td>
-          </tr>
-          <tr>
-            <td colspan="4" style="text-align:right"><strong>Grand Total</strong></td>
-            <td id="grandTotal">INR 0</td><td></td>
-          </tr>
+          <tr><td colspan="4" style="text-align:right">Sub-Total</td><td id="subTotal">INR 0</td><td></td></tr>
+          <tr><td colspan="4" style="text-align:right">GST (18%)</td><td id="gstAmt">INR 0</td><td></td></tr>
+          <tr><td colspan="4" style="text-align:right"><strong>Grand Total</strong></td><td id="grandTotal">INR 0</td><td></td></tr>
         </tfoot>
       </table>
     </div>
@@ -152,105 +142,37 @@
 </main>
 
 <script>
-/* ========= PRICE DATA (INR / piece) =========
-   From your VS Forged Fittings price list (w.e.f. 01/05/2025).
-   Sizes are inch columns; “-” in the sheet means not available (omitted here).
-*/
+/* ======= PRICE DATA (INR / piece) ======= */
 const FITTINGS_DATA = {
-  "MS Elbow Forged Threaded 1000 Lbs Black": {
-    "1/8\":":46, "1/4\":":46, "3/8\":":59, "1/2\":":80, "3/4\":":123, "1\":":189,
-    "1 1/4\":":386, "1 1/2\":":510, "2\":":953, "2 1/2\":":1936, "3\":":3023, "4\":":7262
-  },
-  "MS Tee Forged Threaded 1000 Lbs Black": {
-    "1/8\":":67, "1/4\":":67, "3/8\":":87, "1/2\":":144, "3/4\":":201, "1\":":257,
-    "1 1/4\":":510, "1 1/2\":":681, "2\":":1203, "2 1/2\":":3133, "3\":":4902, "4\":":9641
-  },
-  "MS Union Forged Threaded 1000 Lbs Black": {
-    "1/8\":":106, "1/4\":":106, "3/8\":":115, "1/2\":":144, "3/4\":":181, "1\":":268,
-    "1 1/4\":":463, "1 1/2\":":580, "2\":":920, "2 1/2\":":2780, "3\":":3608, "4\":":8658
-  },
-  "MS Crosses Forged Threaded 1000 Lbs Black": {
-    "1/4\":":157, "3/8\":":166, "1/2\":":181, "3/4\":":263, "1\":":449, "1 1/4\":":937,
-    "1 1/2\":":1225, "2\":":2111, "2 1/2\":":5222, "3\":":8171
-  },
-  "MS Socket Threaded Forged Black": {
-    "1/8\":":16, "1/4\":":16, "3/8\":":20, "1/2\":":37, "3/4\":":41, "1\":":68,
-    "1 1/4\":":105, "1 1/2\":":132, "2\":":227, "2 1/2\":":431, "3\":":477, "4\":":1115
-  },
-  "MS Hex Nipple Threaded Heavy Black": {
-    "1/8\":":14, "1/4\":":14, "3/8\":":18, "1/2\":":30, "3/4\":":43, "1\":":59,
-    "1 1/4\":":105, "1 1/2\":":134, "2\":":228, "2 1/2\":":802, "3\":":1133, "4\":":1597
-  },
-  "MS Plug Solid Forged Threaded Black": {
-    "1/8\":":7, "1/4\":":7, "3/8\":":9, "1/2\":":16, "3/4\":":26, "1\":":43,
-    "1 1/4\":":64, "1 1/2\":":84, "2\":":142, "2 1/2\":":352, "3\":":528, "4\":":1061
-  },
-  "MS Reducing Elbow Threaded Equal OD Black": {
-    "1/4\":":49, "3/8\":":63, "1/2\":":88, "3/4\":":136, "1\":":211,
-    "1 1/4\":":424, "1 1/2\":":568, "2\":":1053, "2 1/2\":":2235, "3\":":3494, "4\":":7987
-  },
-  "MS Reducing Tee Threaded Equal OD Black": {
-    "1/4\":":80, "3/8\":":95, "1/2\":":124, "3/4\":":181, "1\":":286,
-    "1 1/4\":":568, "1 1/2\":":757, "2\":":1328, "2 1/2\":":3604, "3\":":5637, "4\":":10608
-  },
-  "MS Reducing Cross Threaded Equal OD Black": {
-    "1/4\":":172, "3/8\":":183, "1/2\":":201, "3/4\":":289, "1\":":495,
-    "1 1/4\":":1030, "1 1/2\":":1346, "2\":":2321, "2 1/2\":":5745, "3\":":8986
-  },
-  "MS Reducing Socket Threaded Black": {
-    "1/4\":":13, "3/8\":":15, "1/2\":":26, "3/4\":":46, "1\":":89,
-    "1 1/4\":":133, "1 1/2\":":162, "2\":":282, "2 1/2\":":543, "3\":":593, "4\":":1396
-  },
-  "MS Reducing Hex Nipple Threaded Black": {
-    "1/4\":":19, "3/8\":":20, "1/2\":":25, "3/4\":":37, "1\":":73,
-    "1 1/4\":":144, "1 1/2\":":166, "2\":":348, "2 1/2\":":922, "3\":":1303
-  },
-  "MS Elbow M/F Threaded 1000 Lbs Black": {
-    "1/4\":":64, "3/8\":":83, "1/2\":":112, "3/4\":":171, "1\":":256,
-    "1 1/4\":":496, "1 1/2\":":673, "2\":":1210, "2 1/2\":":2741, "3\":":3694, "4\":":8736
-  },
-  "MS Reducing Bushes Threaded 1000 Lbs Black": {
-    "1/4\":":12, "3/8\":":13, "1/2\":":16, "3/4\":":25, "1\":":42,
-    "1 1/4\":":102, "1 1/2\":":123, "2\":":239, "2 1/2\":":635, "3\":":920
-  },
-  "MS Elbow Forged Socket Weld 3000 Lbs Black": {
-    "1/4\":":83, "3/8\":":90, "1/2\":":90, "3/4\":":136, "1\":":218,
-    "1 1/4\":":384, "1 1/2\":":509, "2\":":934, "2 1/2\":":1936, "3\":":3023, "4\":":7262
-  },
-  "MS Tee Forged Socket Weld 3000 Lbs Black": {
-    "1/4\":":110, "3/8\":":122, "1/2\":":124, "3/4\":":181, "1\":":283,
-    "1 1/4\":":508, "1 1/2\":":669, "2\":":1190, "2 1/2\":":3133, "3\":":4902, "4\":":9641
-  },
-  "MS Union Forged Socket Weld 3000 Lbs Black": {
-    "1/4\":":192, "3/8\":":192, "1/2\":":204, "3/4\":":349, "1\":":519,
-    "1 1/4\":":865, "1 1/2\":":1044, "2\":":1498, "2 1/2\":":2780, "3\":":3608, "4\":":8658
-  },
-  "MS Cross Forged Socket Weld 3000 Lbs Black": {
-    "1/4\":":172, "3/8\":":183, "1/2\":":201, "3/4\":":289, "1\":":495,
-    "1 1/4\":":1030, "1 1/2\":":1346, "2\":":2321, "2 1/2\":":5222, "3\":":8171
-  },
-  "MS Socket Forged Socket Weld 2000 Lbs Black": {
-    "1/4\":":29, "3/8\":":38, "1/2\":":48, "3/4\":":78, "1\":":99,
-    "1 1/4\":":174, "1 1/2\":":215, "2\":":360, "2 1/2\":":748, "3\":":983, "4\":":2543
-  },
-  "MS Reducing Elbow Forged SW 3000 Lbs Black": {
-    "1/4\":":90, "3/8\":":101, "1/2\":":101, "3/4\":":149, "1\":":239,
-    "1 1/4\":":422, "1 1/2\":":558, "2\":":1029, "2 1/2\":":2129, "3\":":3324, "4\":":7987
-  },
-  "MS Reducing Tee Forged SW 3000 Lbs Black": {
-    "1/4\":":122, "3/8\":":135, "1/2\":":136, "3/4\":":201, "1\":":312,
-    "1 1/4\":":558, "1 1/2\":":736, "2\":":1308, "2 1/2\":":3446, "3\":":5391, "4\":":10608
-  },
-  "MS Reducing Cross Forged SW 3000 Lbs Black": {
-    "1/4\":":190, "3/8\":":202, "1/2\":":220, "3/4\":":318, "1\":":544,
-    "1 1/4\":":1133, "1 1/2\":":1481, "2\":":2553, "2 1/2\":":5745, "3\":":8986
-  },
-  "MS Reducing Socket Forged SW 3000 Lbs Black": {
-    "1/4\":":35, "3/8\":":48, "1/2\":":61, "3/4\":":99, "1\":":124,
-    "1 1/4\":":219, "1 1/2\":":270, "2\":":449, "2 1/2\":":949, "3\":":1229, "4\":":3003
-  }
+  /* ---------- THREADED (1000 Lbs Black) ---------- */
+  "Threaded – Elbow Forged 1000 Lbs Black": { "1/8\"":46,"1/4\"":46,"3/8\"":59,"1/2\"":80,"3/4\"":123,"1\"":189,"1 1/4\"":386,"1 1/2\"":510,"2\"":953,"2 1/2\"":1936,"3\"":3023,"4\"":7262 },
+  "Threaded – Tee Forged 1000 Lbs Black": { "1/8\"":67,"1/4\"":67,"3/8\"":82,"1/2\"":114,"3/4\"":161,"1\"":257,"1 1/4\"":510,"1 1/2\"":681,"2\"":1203,"2 1/2\"":3133,"3\"":4902,"4\"":9641 },
+  "Threaded – Union Forged 1000 Lbs Black": { "1/8\"":106,"1/4\"":106,"3/8\"":115,"1/2\"":144,"3/4\"":181,"1\"":268,"1 1/4\"":463,"1 1/2\"":580,"2\"":920,"2 1/2\"":2780,"3\"":3608,"4\"":8658 },
+  "Threaded – Cross Forged 1000 Lbs Black": { "1/4\"":157,"3/8\"":166,"1/2\"":181,"3/4\"":263,"1\"":449,"1 1/4\"":937,"1 1/2\"":1225,"2\"":2111,"2 1/2\"":5222,"3\"":8171 },
+  "Threaded – Socket Forged Black": { "1/8\"":16,"1/4\"":16,"3/8\"":20,"1/2\"":37,"3/4\"":41,"1\"":68,"1 1/4\"":105,"1 1/2\"":132,"2\"":227,"2 1/2\"":431,"3\"":477,"4\"":1115 },
+  "Threaded – Hex Nipple Heavy Black": { "1/8\"":14,"1/4\"":14,"3/8\"":18,"1/2\"":30,"3/4\"":43,"1\"":59,"1 1/4\"":105,"1 1/2\"":134,"2\"":228,"2 1/2\"":802,"3\"":1133,"4\"":1597 },
+  "Threaded – Plug Solid Forged Black": { "1/8\"":7,"1/4\"":7,"3/8\"":9,"1/2\"":16,"3/4\"":26,"1\"":43,"1 1/4\"":64,"1 1/2\"":84,"2\"":142,"2 1/2\"":352,"3\"":528,"4\"":1061 },
+  "Threaded – Reducing Elbow Equal OD Black": { "3/8\"":49,"1/2\"":63,"3/4\"":88,"1\"":136,"1 1/4\"":211,"1 1/2\"":424,"2\"":1053,"2 1/2\"":2235,"3\"":3494,"4\"":7987 },
+  "Threaded – Reducing Tee Equal OD Black": { "1/4\"":80,"3/8\"":95,"1/2\"":124,"3/4\"":181,"1\"":286,"1 1/4\"":568,"1 1/2\"":757,"2\"":1328,"2 1/2\"":3604,"3\"":5637,"4\"":10608 },
+  "Threaded – Reducing Cross Equal OD Black": { "1/4\"":172,"3/8\"":183,"1/2\"":201,"3/4\"":289,"1\"":495,"1 1/4\"":1030,"1 1/2\"":1346,"2\"":2321,"2 1/2\"":5745,"3\"":8986 },
+  "Threaded – Reducing Socket Black": { "3/8\"":13,"1/2\"":15,"3/4\"":26,"1\"":46,"1 1/4\"":89,"1 1/2\"":133,"2\"":162,"2 1/2\"":282,"3\"":543,"4\"":1396 },
+  "Threaded – Reducing Hex Nipple Black": { "1/4\"":19,"3/8\"":20,"1/2\"":25,"3/4\"":37,"1\"":73,"1 1/4\"":144,"1 1/2\"":166,"2\"":348,"2 1/2\"":922,"3\"":1303 },
+  "Threaded – M/F Elbow 1000 Lbs Black": { "1/4\"":64,"3/8\"":83,"1/2\"":112,"3/4\"":171,"1\"":256,"1 1/4\"":496,"1 1/2\"":673,"2\"":1210,"2 1/2\"":2741,"3\"":3694,"4\"":8736 },
+  "Threaded – Reducing Bush Black": { "1/4\"":12,"3/8\"":13,"1/2\"":16,"3/4\"":25,"1\"":42,"1 1/4\"":102,"1 1/2\"":123,"2\"":239,"2 1/2\"":635,"3\"":920 },
+
+  /* ---------- SOCKET WELD (3000 Lbs Black) ---------- */
+  "Socket Weld – Elbow Forged 3000 Lbs Black": { "1/4\"":83,"3/8\"":90,"1/2\"":90,"3/4\"":136,"1\"":218,"1 1/4\"":384,"1 1/2\"":509,"2\"":934,"2 1/2\"":1936,"3\"":3023,"4\"":7262 },
+  "Socket Weld – Tee Forged 3000 Lbs Black": { "1/4\"":110,"3/8\"":122,"1/2\"":124,"3/4\"":181,"1\"":283,"1 1/4\"":508,"1 1/2\"":669,"2\"":1190,"2 1/2\"":3133,"3\"":4902,"4\"":9641 },
+  "Socket Weld – Union Forged 3000 Lbs Black": { "1/4\"":192,"3/8\"":192,"1/2\"":204,"3/4\"":349,"1\"":519,"1 1/4\"":865,"1 1/2\"":1044,"2\"":1498,"2 1/2\"":2780,"3\"":3608,"4\"":8658 },
+  "Socket Weld – Cross Forged 3000 Lbs Black": { "1/4\"":172,"3/8\"":183,"1/2\"":201,"3/4\"":289,"1\"":495,"1 1/4\"":1030,"1 1/2\"":1346,"2\"":2321,"2 1/2\"":5222,"3\"":8171 },
+  "Socket Weld – Socket Forged 3000 Lbs Black": { "1/4\"":29,"3/8\"":38,"1/2\"":48,"3/4\"":78,"1\"":99,"1 1/4\"":174,"1 1/2\"":215,"2\"":360,"2 1/2\"":748,"3\"":983,"4\"":2543 },
+  "Socket Weld – Reducing Elbow Forged 3000 Lbs Black": { "3/8\"":90,"1/2\"":101,"3/4\"":101,"1\"":149,"1 1/4\"":239,"1 1/2\"":422,"2\"":558,"2 1/2\"":1029,"3\"":2129,"4\"":7987 },
+  "Socket Weld – Reducing Tee Forged 3000 Lbs Black": { "1/4\"":122,"3/8\"":135,"1/2\"":136,"3/4\"":201,"1\"":312,"1 1/4\"":558,"1 1/2\"":736,"2\"":1308,"2 1/2\"":3446,"3\"":5391,"4\"":10608 },
+  "Socket Weld – Reducing Cross Forged 3000 Lbs Black": { "1/4\"":190,"3/8\"":202,"1/2\"":220,"3/4\"":318,"1\"":544,"1 1/4\"":1133,"1 1/2\"":1481,"2\"":2553,"2 1/2\"":5745,"3\"":8986 },
+  "Socket Weld – Reducing Socket Forged 3000 Lbs Black": { "1/4\"":35,"3/8\"":48,"1/2\"":61,"3/4\"":99,"1\"":124,"1 1/4\"":219,"1 1/2\"":270,"2\"":449,"2 1/2\"":934,"3\"":1229,"4\"":3003 }
 };
 
+/* ======= Elements ======= */
 const $product = document.getElementById('product');
 const $size = document.getElementById('size');
 const $qty = document.getElementById('qty');
@@ -263,15 +185,19 @@ const $grand = document.getElementById('grandTotal');
 
 let rows = [];
 
-/* ===== init ===== */
+/* ======= Helpers ======= */
+const fmt = n => n.toLocaleString('en-IN',{maximumFractionDigits:2});
+
+/* ======= Init ======= */
 (function init(){
   Object.keys(FITTINGS_DATA).forEach(name=>{
     const o=document.createElement('option'); o.value=name; o.textContent=name; $product.appendChild(o);
   });
   onProduct();
+  document.getElementById('addBtn').addEventListener('click', addItem);
+  $product.addEventListener('change', onProduct);
+  $size.addEventListener('change', updateUnit);
 })();
-$product.addEventListener('change', onProduct);
-$size.addEventListener('change', updateUnit);
 
 function onProduct(){
   $size.innerHTML=''; $unit.value='';
@@ -281,60 +207,55 @@ function onProduct(){
   });
   updateUnit();
 }
-
 function updateUnit(){
   const price = FITTINGS_DATA[$product.value]?.[$size.value];
   $unit.value = price ? price.toLocaleString('en-IN') : '';
 }
 
+/* ======= Add / Render / Calc ======= */
 function addItem(){
-  const product=$product.value;
-  const size=$size.value;
-  const per = FITTINGS_DATA[product]?.[size];
-  if(!per) return alert('Invalid selection');
-
-  const qty = Math.max(1, parseInt($qty.value||'1',10));
+  const name = $product.value;
+  const size = $size.value;
+  const per  = FITTINGS_DATA[name]?.[size];
+  if(!per) return alert('Please choose a valid product & size.');
+  const qty  = Math.max(1, parseInt($qty.value||'1',10));
   const disc = parseFloat($disc.value)||0;
 
   const unitNet = per * (1 - disc/100);
-  const line = unitNet * qty;
+  const line    = unitNet * qty;
 
-  rows.push({product,size,per,disc,qty,total:line});
-  $qty.value=1;
+  rows.push({name,size,per,disc,qty,total:line});
+  $qty.value = 1;
   renderRows();
 }
-
 function renderRows(){
   $tbody.innerHTML='';
   rows.forEach((r,i)=>{
     const tr=document.createElement('tr');
     tr.innerHTML = `
-      <td>${r.product}</td>
+      <td>${r.name}</td>
       <td>${r.size}</td>
-      <td>INR ${(r.per*(1-r.disc/100)).toLocaleString('en-IN',{maximumFractionDigits:2})}</td>
+      <td>INR ${fmt(r.per*(1-r.disc/100))}</td>
       <td>${r.qty}</td>
-      <td>INR ${r.total.toLocaleString('en-IN',{maximumFractionDigits:2})}</td>
+      <td>INR ${fmt(r.total)}</td>
       <td><button class="btn secondary" onclick="removeRow(${i})">X</button></td>
     `;
     $tbody.appendChild(tr);
   });
   recalc();
 }
-
 function removeRow(i){ rows.splice(i,1); renderRows(); }
-
 function recalc(){
-  const sub   = rows.reduce((a,b)=>a+b.total,0);
-  const gst   = +(sub*0.18).toFixed(2);
+  const sub = rows.reduce((a,b)=>a+b.total,0);
+  const gst = +(sub*0.18).toFixed(2);
   const grand = sub + gst;
-  $sub.textContent   = "INR " + sub.toLocaleString('en-IN',{maximumFractionDigits:2});
-  $gst.textContent   = "INR " + gst.toLocaleString('en-IN',{maximumFractionDigits:2});
-  $grand.textContent = "INR " + grand.toLocaleString('en-IN',{maximumFractionDigits:2});
+  $sub.textContent   = "INR " + fmt(sub);
+  $gst.textContent   = "INR " + fmt(gst);
+  $grand.textContent = "INR " + fmt(grand);
 }
+function resetAll(){ rows = []; renderRows(); }
 
-function resetAll(){ rows=[]; renderRows(); }
-
-/* ===== PDF ===== */
+/* ======= PDF ======= */
 function downloadPDF(){
   recalc();
   const { jsPDF } = window.jspdf;
@@ -346,9 +267,9 @@ function downloadPDF(){
   doc.text('Vijay Sales Corporation • sales@vijaysalescorp.com • +91 9999889008',14,20);
 
   const body = rows.length ? rows.map(r=>[
-    r.product, r.size,
-    `INR ${(r.per*(1-r.disc/100)).toLocaleString('en-IN',{maximumFractionDigits:2})}`,
-    r.qty, `INR ${r.total.toLocaleString('en-IN',{maximumFractionDigits:2})}`
+    r.name, r.size,
+    `INR ${fmt(r.per*(1-r.disc/100))}`,
+    r.qty, `INR ${fmt(r.total)}`
   ]) : [['-','-','-','-','-']];
 
   doc.autoTable({
@@ -358,37 +279,37 @@ function downloadPDF(){
   });
 
   const y = (doc.lastAutoTable?.finalY || 26) + 8;
-  const sub   = rows.reduce((a,b)=>a+b.total,0);
-  const gst   = +(sub*0.18).toFixed(2);
+  const sub = rows.reduce((a,b)=>a+b.total,0);
+  const gst = +(sub*0.18).toFixed(2);
   const grand = sub + gst;
 
   doc.setFontSize(11);
-  doc.text(`Sub-Total: INR ${sub.toLocaleString('en-IN',{maximumFractionDigits:2})}`, 14, y);
-  doc.text(`GST (18%): INR ${gst.toLocaleString('en-IN',{maximumFractionDigits:2})}`, 14, y+6);
+  doc.text(`Sub-Total: INR ${fmt(sub)}`, 14, y);
+  doc.text(`GST (18%): INR ${fmt(gst)}`, 14, y+6);
   doc.setFont(undefined,'bold');
-  doc.text(`Grand Total: INR ${grand.toLocaleString('en-IN',{maximumFractionDigits:2})}`, 14, y+14);
+  doc.text(`Grand Total: INR ${fmt(grand)}`, 14, y+14);
   doc.setFont(undefined,'normal');
   doc.setFontSize(9);
-  doc.text('Notes: Rates are EX Delhi; Freight extra as per actual. GST @ 18% extra. Price list at dispatch applies. Discount 48%.', 14, y+22);
+  doc.text('Notes: Rates are EX Delhi; Freight extra as per actual. Discount 48% applied. GST @ 18% extra.', 14, y+22);
 
   doc.save('VS-Forged-Fittings-Quotation.pdf');
 }
 
-/* ===== WhatsApp ===== */
+/* ======= WhatsApp ======= */
 function sendWA(){
   recalc();
   let msg = 'VS Forged Fittings – Quotation (Vijay Sales Corporation)\n\n';
   if(!rows.length){ msg += '(No items added)\n'; }
   rows.forEach(r=>{
-    msg += `• ${r.product} | ${r.size} | Qty ${r.qty} | Unit INR ${(r.per*(1-r.disc/100)).toLocaleString('en-IN',{maximumFractionDigits:2})} | Line INR ${r.total.toLocaleString('en-IN',{maximumFractionDigits:2})}\n`;
+    msg += `• ${r.name} | ${r.size} | Qty ${r.qty} | Unit INR ${fmt(r.per*(1-r.disc/100))} | Line INR ${fmt(r.total)}\n`;
   });
-  const sub   = rows.reduce((a,b)=>a+b.total,0);
-  const gst   = +(sub*0.18).toFixed(2);
+  const sub = rows.reduce((a,b)=>a+b.total,0);
+  const gst = +(sub*0.18).toFixed(2);
   const grand = sub + gst;
 
-  msg += `\nSub-Total: INR ${sub.toLocaleString('en-IN',{maximumFractionDigits:2})}`;
-  msg += `\nGST (18%): INR ${gst.toLocaleString('en-IN',{maximumFractionDigits:2})}`;
-  msg += `\nGrand Total: INR ${grand.toLocaleString('en-IN',{maximumFractionDigits:2})}\n\n`;
+  msg += `\nSub-Total: INR ${fmt(sub)}`;
+  msg += `\nGST (18%): INR ${fmt(gst)}`;
+  msg += `\nGrand Total: INR ${fmt(grand)}\n\n`;
   msg += `Contact: 9999889008 • sales@vijaysalescorp.com`;
 
   const url = `https://wa.me/919999889008?text=${encodeURIComponent(msg)}`;
